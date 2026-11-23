@@ -252,3 +252,12 @@ button.secondary { background: #6f7b8c; }
 /* ----- photo credit + solve button ----- */
 .credit { margin: -8px 0 0; font-size: 0.75rem; opacity: 0.6; }
 .board.solving .tile { cursor: default; }
+.auto-note {
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #fbe7d3;
+  color: #9a4f12;
+  font-size: 0.9rem;
+  font-weight: 600;
+}

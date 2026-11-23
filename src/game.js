@@ -13,6 +13,7 @@ const els = {
   scoreModal: document.getElementById("score-modal"),
   scoreForm: document.getElementById("score-form"),
   scoreSummary: document.getElementById("score-summary"),
+  scoreAuto: document.getElementById("score-auto"),
   nameInput: document.getElementById("name-input"),
   cancelBtn: document.getElementById("cancel-btn"),
   newGame: document.getElementById("new-btn"),
@@ -291,7 +292,7 @@ const statsText = () =>
 
 function showMessage() {
   if (!game) return;
-  if (game.savedName) els.message.textContent = t("saved")(game.savedName);
+  if (game.savedName) els.message.textContent = t("saved")(game.savedName) + (game.autoUsed ? ` ${t("solvedAuto")}` : "");
   else if (game.done) els.message.textContent = `${t(game.autoUsed ? "solvedAuto" : "solvedMsg")} ${statsText()}`;
   else if (game.solving) els.message.textContent = t("solving");
   else els.message.textContent = t("start");
@@ -307,7 +308,7 @@ function applyLanguage() {
   document.querySelectorAll("[data-t]").forEach(n => { n.textContent = t(n.dataset.t); });
   langSelect.value = lang;
   showMessage();
-  if (game && !els.scoreModal.hidden) els.scoreSummary.textContent = statsText();
+  if (game && !els.scoreModal.hidden) fillScoreSummary();
 }
 
 // Language dropdown: each language listed in its own name.
@@ -671,8 +672,15 @@ function saveHighScore(entry) {
   } catch (e) { /* storage unavailable (e.g. private browsing) — just skip saving */ }
 }
 
-function openScoreModal() {
+// The popup notes when "Solve it" was used, but the name can still be saved.
+function fillScoreSummary() {
   els.scoreSummary.textContent = statsText();
+  els.scoreAuto.textContent = t("solvedAuto");
+  els.scoreAuto.hidden = !game.autoUsed;
+}
+
+function openScoreModal() {
+  fillScoreSummary();
   els.nameInput.value = "";
   els.scoreModal.hidden = false;
   els.nameInput.focus();
