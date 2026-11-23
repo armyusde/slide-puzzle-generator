@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="Mountains">
   <link rel="apple-touch-icon" href="assets/images/icon-180.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="src/style.css?v=1">
+  <link rel="stylesheet" href="src/style.css?v=2">
 </head>
 <body>
   <header>
@@ -33,7 +33,8 @@
 
     <section class="column right-column">
       <h2 data-t="picture">Picture</h2>
-      <img class="preview" src="assets/images/mountains.svg" alt="" draggable="false">
+      <img class="preview" src="assets/images/mountains.jpg" alt="" draggable="false">
+      <p class="credit">Grand Teton National Park, Wyoming</p>
       <p class="message" id="message"></p>
       <div class="option-row">
         <span data-t="size">Size</span>
@@ -48,6 +49,7 @@
         <span data-t="numbers">Numbers</span>
       </label>
       <div class="controls">
+        <button id="solve-btn" class="secondary" data-t="solve">Solve it</button>
         <button id="new-btn" data-t="newGame">New game</button>
       </div>
       <button id="score-btn" class="score-btn" hidden data-t="enterName">Enter name for high score</button>
@@ -68,7 +70,7 @@
     </form>
   </div>
 
-  <script src="src/game.js?v=1"></script>
+  <script src="src/game.js?v=2"></script>
   <script>
     // Offline support (only works when served over http/https, not from a file).
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {

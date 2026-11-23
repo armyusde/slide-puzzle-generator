@@ -16,6 +16,7 @@ const els = {
   nameInput: document.getElementById("name-input"),
   cancelBtn: document.getElementById("cancel-btn"),
   newGame: document.getElementById("new-btn"),
+  solve: document.getElementById("solve-btn"),
 };
 
 const SIZE_KEY = "mountainSlide.size";
@@ -255,6 +256,31 @@ const TEXT = {
   },
 };
 
+// "Solve it" button: [button, stop button, while solving, when finished].
+const SOLVE_TEXT = {
+  en: ["Solve it", "Stop", "Solving…", "Solved automatically."],
+  zh: ["自动完成", "停止", "正在自动完成…", "已自动完成。"],
+  ar: ["حُلّها", "إيقاف", "جارٍ الحل…", "تم الحل تلقائيًا."],
+  es: ["Resolver", "Detener", "Resolviendo…", "Resuelto automáticamente."],
+  fr: ["Résoudre", "Arrêter", "Résolution…", "Résolu automatiquement."],
+  pt: ["Resolver", "Parar", "Resolvendo…", "Resolvido automaticamente."],
+  de: ["Lösen", "Stopp", "Wird gelöst…", "Automatisch gelöst."],
+  ru: ["Собрать", "Стоп", "Собираю…", "Собрано автоматически."],
+  hi: ["हल करें", "रोकें", "हल किया जा रहा है…", "अपने-आप हल हो गया।"],
+  ja: ["自動で解く", "止める", "解いています…", "自動で解きました。"],
+  ko: ["자동 풀기", "멈추기", "푸는 중…", "자동으로 풀었습니다."],
+  vi: ["Tự giải", "Dừng", "Đang giải…", "Đã tự động giải xong."],
+  id: ["Selesaikan", "Berhenti", "Sedang menyelesaikan…", "Diselesaikan otomatis."],
+  tl: ["Lutasin", "Itigil", "Nilulutas…", "Awtomatikong nalutas."],
+  it: ["Risolvi", "Ferma", "Risoluzione…", "Risolto automaticamente."],
+  fa: ["حل کن", "توقف", "در حال حل…", "به‌طور خودکار حل شد."],
+  he: ["פתרו בשבילי", "עצור", "פותר…", "נפתר אוטומטית."],
+  el: ["Λύσ’ το", "Διακοπή", "Επίλυση…", "Λύθηκε αυτόματα."],
+};
+for (const [id, [solve, stop, solving, solvedAuto]] of Object.entries(SOLVE_TEXT)) {
+  Object.assign(TEXT[id], { solve, stop, solving, solvedAuto });
+}
+
 let lang = "en";
 if (TEXT[store.get(LANG_KEY)]) lang = store.get(LANG_KEY);
 const t = key => TEXT[lang][key];
@@ -266,9 +292,12 @@ const statsText = () =>
 function showMessage() {
   if (!game) return;
   if (game.savedName) els.message.textContent = t("saved")(game.savedName);
-  else if (game.done) els.message.textContent = `${t("solvedMsg")} ${statsText()}`;
+  else if (game.done) els.message.textContent = `${t(game.autoUsed ? "solvedAuto" : "solvedMsg")} ${statsText()}`;
+  else if (game.solving) els.message.textContent = t("solving");
   else els.message.textContent = t("start");
   els.message.className = "message" + (game.done ? " win" : "");
+  els.solve.textContent = t(game.solving ? "stop" : "solve");
+  els.solve.disabled = game.done;
 }
 
 function applyLanguage() {
@@ -314,7 +343,11 @@ function newGame() {
   }
 
   stopTimer();
-  game = { n, cells, empty, moves: 0, seconds: 0, started: false, done: false, timer: null, savedName: null };
+  stopSolving();
+  game = {
+    n, cells, empty, moves: 0, seconds: 0, started: false, done: false, timer: null, savedName: null,
+    solving: false, autoUsed: false,
+  };
   els.moves.textContent = "0";
   els.time.textContent = formatTime(0);
   els.scoreBtn.hidden = true;
@@ -404,6 +437,7 @@ function stopTimer() { if (game && game.timer) { clearInterval(game.timer); game
 
 function win() {
   stopTimer();
+  stopSolving();
   game.done = true;
   els.board.classList.add("solved");
   els.scoreBtn.hidden = false;
@@ -429,7 +463,7 @@ window.addEventListener("pointerup", e => {
   const dx = e.clientX - press.x, dy = e.clientY - press.y;
   const cell = press.cell;
   press = null;
-  if (!game || game.done) return;
+  if (!game || game.done || game.solving) return;
   if (Math.hypot(dx, dy) < 15) { if (cell >= 0) slideFrom(cell); return; }
   // Swipe: e.g. swiping left moves the piece to the right of the empty square.
   const { n, empty } = game;
@@ -448,7 +482,7 @@ window.addEventListener("pointercancel", () => { press = null; });
 
 // Arrow keys on a computer work like swipes.
 document.addEventListener("keydown", e => {
-  if (!game || game.done || !els.scoreModal.hidden) return;
+  if (!game || game.done || game.solving || !els.scoreModal.hidden) return;
   const { n, empty } = game;
   const r = Math.floor(empty / n), c = empty % n;
   const map = {
@@ -457,6 +491,152 @@ document.addEventListener("keydown", e => {
   };
   if (e.key in map) { e.preventDefault(); if (map[e.key] >= 0) slideFrom(map[e.key]); }
 });
+
+/* ---------- automatic solver ---------- */
+// Solves the way people do: put the top row in place, then the left column,
+// leaving a smaller square; repeat until only 3×3 is left, then search that
+// last 3×3 for the shortest finish (on a 3×3 puzzle the whole solve is the
+// shortest possible). Returns the squares the empty square moves to, in order.
+
+function findSolution(startCells, n) {
+  const cells = startCells.slice();
+  const blankId = n * n - 1;
+  const N = n * n;
+  let empty = cells.indexOf(blankId);
+  const path = [];
+  const locked = new Array(N).fill(false); // squares already finished
+  const move = to => { cells[empty] = cells[to]; cells[to] = blankId; empty = to; path.push(to); };
+
+  // Bring the pieces in `group` (1 or 2 of them) to their home squares without
+  // touching finished squares. Searches over (empty square, where those pieces
+  // are); every other piece is ignored, so the search stays small.
+  function place(group) {
+    const home = group.slice(); // piece p's home square is p
+    let pos = group.map(id => cells.indexOf(id));
+    if (pos.every((p, i) => p === home[i])) { group.forEach(id => { locked[id] = true; }); return; }
+    const encode = (e, ps) => ps.reduce((a, p) => a * N + p, e);
+    const div = N ** group.length;
+    const start = encode(empty, pos);
+    const prev = new Map([[start, -1]]);
+    const queue = [[empty, pos]];
+    let found = -1;
+    for (let qi = 0; qi < queue.length && found < 0; qi++) {
+      const [e, ps] = queue[qi];
+      const key = encode(e, ps);
+      for (const nb of neighbours(e, n)) {
+        if (locked[nb]) continue;
+        const np = ps.map(p => (p === nb ? e : p));
+        const nk = encode(nb, np);
+        if (prev.has(nk)) continue;
+        prev.set(nk, key);
+        if (np.every((p, i) => p === home[i])) { found = nk; break; }
+        queue.push([nb, np]);
+      }
+    }
+    const steps = [];
+    for (let k = found; k !== start; k = prev.get(k)) steps.push(Math.floor(k / div));
+    steps.reverse().forEach(move);
+    group.forEach(id => { locked[id] = true; });
+  }
+
+  let top = 0, left = 0;
+  while (n - top > 3) {
+    for (let c = left; c < n - 2; c++) place([top * n + c]);
+    place([top * n + n - 2, top * n + n - 1]); // last two of a row go in together
+    top++;
+    for (let r = top; r < n - 2; r++) place([r * n + left]);
+    place([(n - 2) * n + left, (n - 1) * n + left]);
+    left++;
+  }
+
+  // Last 3×3: A* search with the "how far is each piece from home" estimate.
+  const region = [];
+  for (let r = top; r < n; r++) for (let c = left; c < n; c++) region.push(r * n + c);
+  const local = new Map(region.map((sq, i) => [sq, i]));
+  const dist = (id, i) => {
+    const h = local.get(id);
+    return Math.abs(Math.floor(h / 3) - Math.floor(i / 3)) + Math.abs((h % 3) - (i % 3));
+  };
+  const estimate = s => s.reduce((sum, id, i) => (id === blankId ? sum : sum + dist(id, i)), 0);
+  const startState = region.map(sq => cells[sq]);
+  const goalKey = region.join(",");
+  const seen = new Map([[startState.join(","), { parent: null, step: -1 }]]);
+  const heap = [];
+  const push = item => {
+    heap.push(item);
+    for (let i = heap.length - 1; i > 0;) {
+      const p = (i - 1) >> 1;
+      if (heap[p].f <= heap[i].f) break;
+      [heap[p], heap[i]] = [heap[i], heap[p]]; i = p;
+    }
+  };
+  const pop = () => {
+    const top = heap[0], last = heap.pop();
+    if (heap.length) {
+      heap[0] = last;
+      for (let i = 0; ;) {
+        const l = 2 * i + 1, r = l + 1;
+        let m = i;
+        if (l < heap.length && heap[l].f < heap[m].f) m = l;
+        if (r < heap.length && heap[r].f < heap[m].f) m = r;
+        if (m === i) break;
+        [heap[m], heap[i]] = [heap[i], heap[m]]; i = m;
+      }
+    }
+    return top;
+  };
+  push({ s: startState, g: 0, f: estimate(startState), key: startState.join(",") });
+  let endKey = startState.join(",") === goalKey ? goalKey : null;
+  while (heap.length && !endKey) {
+    const cur = pop();
+    const b = cur.s.indexOf(blankId);
+    for (const nb of neighbours(b, 3)) {
+      const s = cur.s.slice();
+      [s[b], s[nb]] = [s[nb], s[b]];
+      const key = s.join(",");
+      if (seen.has(key)) continue;
+      seen.set(key, { parent: cur.key, step: region[nb] });
+      if (key === goalKey) { endKey = key; break; }
+      push({ s, g: cur.g + 1, f: cur.g + 1 + estimate(s), key });
+    }
+  }
+  const tail = [];
+  for (let k = endKey; seen.get(k).parent !== null; k = seen.get(k).parent) tail.push(seen.get(k).step);
+  tail.reverse().forEach(move);
+  return path;
+}
+
+let solveTimer = null;
+
+function stopSolving() {
+  if (solveTimer) { clearTimeout(solveTimer); solveTimer = null; }
+  if (game && game.solving) {
+    game.solving = false;
+    els.board.classList.remove("solving");
+    showMessage();
+  }
+}
+
+function startSolving() {
+  if (!game || game.done || game.solving) return;
+  const path = findSolution(game.cells, game.n);
+  if (!path.length) return;
+  game.solving = true;
+  game.autoUsed = true;
+  els.board.classList.add("solving");
+  showMessage();
+  // Long solutions play faster so they don't take forever.
+  const delay = Math.max(70, Math.min(220, 9000 / path.length));
+  let i = 0;
+  const step = () => {
+    if (!game.solving) return;
+    slideFrom(path[i++]);
+    if (!game.done && i < path.length) solveTimer = setTimeout(step, delay);
+  };
+  step();
+}
+
+els.solve.addEventListener("click", () => (game && game.solving ? stopSolving() : startSolving()));
 
 /* ---------- options ---------- */
 
@@ -485,7 +665,8 @@ function saveHighScore(entry) {
     const list = JSON.parse(localStorage.getItem(HIGH_SCORE_KEY) || "[]");
     list.push(entry);
     // Best games first: bigger puzzles, then fewest moves, then fastest.
-    list.sort((a, b) => b.size - a.size || a.moves - b.moves || a.seconds - b.seconds);
+    // Games finished with "Solve it" go after the ones you solved yourself.
+    list.sort((a, b) => !!a.auto - !!b.auto || b.size - a.size || a.moves - b.moves || a.seconds - b.seconds);
     localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(list.slice(0, 50)));
   } catch (e) { /* storage unavailable (e.g. private browsing) — just skip saving */ }
 }
@@ -581,7 +762,8 @@ els.scoreForm.addEventListener("submit", async e => {
   if (pack) { showPack(pack); return; }
 
   saveHighScore({
-    name, size: game.n, moves: game.moves, seconds: game.seconds, date: new Date().toISOString(),
+    name, size: game.n, moves: game.moves, seconds: game.seconds, auto: game.autoUsed,
+    date: new Date().toISOString(),
   });
   game.savedName = name;
   showMessage();
