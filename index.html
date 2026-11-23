@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Mountain Slide Puzzle</title>
+  <title>Slide Puzzle Generator</title>
   <meta name="theme-color" content="#2f5f9a">
   <!-- iPhone home-screen app settings -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Mountains">
+  <meta name="apple-mobile-web-app-title" content="Slide Puzzle">
   <link rel="apple-touch-icon" href="assets/images/icon-180.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="src/style.css?v=3">
+  <link rel="stylesheet" href="src/style.css?v=4">
 </head>
 <body>
   <header>
-    <h1 data-t="title">Mountain Slide Puzzle</h1>
+    <h1 data-t="title">Slide Puzzle Generator</h1>
     <div class="stats">
       <span><span data-t="movesLabel">Moves:</span> <strong id="moves">0</strong></span>
       <span><span data-t="timeLabel">Time:</span> <strong id="time">0:00</strong></span>
@@ -27,14 +27,14 @@
   <main class="board-wrap">
     <section class="column left-column">
       <h2 data-t="heading">Slide the tiles</h2>
-      <p class="instructions" data-t="instructions">Tap a tile next to the empty space to slide it. Put the mountain picture back together.</p>
+      <p class="instructions" data-t="instructions">Tap a tile next to the empty space to slide it. Put the picture back together.</p>
       <div id="board" class="board"></div>
     </section>
 
     <section class="column right-column">
       <h2 data-t="picture">Picture</h2>
-      <img class="preview" src="assets/images/mountains.jpg" alt="" draggable="false">
-      <p class="credit">Grand Teton National Park, Wyoming</p>
+      <img id="preview" class="preview" alt="" draggable="false">
+      <p id="credit" class="credit"></p>
       <p class="message" id="message"></p>
       <div class="option-row">
         <span data-t="size">Size</span>
@@ -71,7 +71,7 @@
     </form>
   </div>
 
-  <script src="src/game.js?v=3"></script>
+  <script src="src/game.js?v=4"></script>
   <script>
     // Offline support (only works when served over http/https, not from a file).
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {

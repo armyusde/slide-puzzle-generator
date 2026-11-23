@@ -1,6 +1,34 @@
-// Mountain Slide Puzzle — a sliding tile puzzle of a mountain range.
+// Slide Puzzle Generator — a sliding tile puzzle with a random nature picture.
 // The picture is cut into a grid with one piece missing. Tap (or swipe) a tile
 // next to the empty space to slide it. Put the picture back together to win.
+
+// The pictures (assets/pictures). All are public domain or CC0 (NASA, NOAA, US
+// National Park Service photos). To add one: put a square JPEG in the folder,
+// add a line here, and add it to FILES in sw.js.
+const PICTURES = [
+  { id: "tetons", caption: "Grand Teton National Park, Wyoming" },
+  { id: "yosemite-falls", caption: "Yosemite Falls, California" },
+  { id: "rainbow-falls", caption: "Vernal Fall, Yosemite" },
+  { id: "wildflowers", caption: "Wildflowers at Mount Rainier" },
+  { id: "turtle", caption: "Green sea turtle" },
+  { id: "reef-fish", caption: "Reef fish off Kure Atoll" },
+  { id: "coral-reef", caption: "Flower Garden Banks coral reef" },
+  { id: "redwoods", caption: "Redwood National Park, California" },
+  { id: "autumn-river", caption: "Great Smoky Mountains in autumn" },
+  { id: "autumn-falls", caption: "Meigs Falls, Great Smoky Mountains" },
+  { id: "cosmic-cliffs", caption: "Cosmic Cliffs, Carina Nebula (NASA Webb)" },
+  { id: "pillars", caption: "Pillars of Creation (NASA Webb)" },
+  { id: "saturn", caption: "Saturn (NASA Cassini)" },
+];
+const picUrl = pic => `assets/pictures/${pic.id}.jpg`;
+
+// Pick a random picture, never the same one twice in a row.
+let lastPicture = null;
+function pickPicture() {
+  const choices = PICTURES.filter(p => p !== lastPicture);
+  lastPicture = choices[Math.floor(Math.random() * choices.length)];
+  return lastPicture;
+}
 
 const els = {
   board: document.getElementById("board"),
@@ -18,6 +46,8 @@ const els = {
   cancelBtn: document.getElementById("cancel-btn"),
   newGame: document.getElementById("new-btn"),
   solve: document.getElementById("solve-btn"),
+  preview: document.getElementById("preview"),
+  credit: document.getElementById("credit"),
 };
 
 const SIZE_KEY = "mountainSlide.size";
@@ -40,9 +70,9 @@ const formatTime = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")
 const LANG_KEY = "wordJumble.lang"; // shared with the bonus pack, so both remember the choice
 const TEXT = {
   en: {
-    title: "Mountain Slide Puzzle", movesLabel: "Moves:", timeLabel: "Time:",
+    title: "Slide Puzzle Generator", movesLabel: "Moves:", timeLabel: "Time:",
     heading: "Slide the tiles",
-    instructions: "Tap a tile next to the empty space to slide it. Put the mountain picture back together.",
+    instructions: "Tap a tile next to the empty space to slide it. Put the picture back together.",
     picture: "Picture", size: "Size", numbers: "Numbers", newGame: "New game",
     start: "Put the picture back together.", solvedMsg: "You did it!",
     enterName: "Enter name for high score", highScore: "High Score!", yourName: "Enter your name",
@@ -52,9 +82,9 @@ const TEXT = {
     name: "English", code: "en",
   },
   zh: {
-    title: "山脉滑块拼图", movesLabel: "步数：", timeLabel: "时间：",
+    title: "滑块拼图生成器", movesLabel: "步数：", timeLabel: "时间：",
     heading: "滑动拼块",
-    instructions: "点击空格旁边的拼块即可滑动。把山脉图片拼回原样。",
+    instructions: "点击空格旁边的拼块即可滑动。把图片拼回原样。",
     picture: "原图", size: "大小", numbers: "数字", newGame: "新游戏",
     start: "把图片拼回原样。", solvedMsg: "完成了！",
     enterName: "输入名字记录高分", highScore: "新高分！", yourName: "输入你的名字",
@@ -64,9 +94,9 @@ const TEXT = {
     name: "中文（简体）", code: "zh-CN",
   },
   ar: {
-    title: "لغز الجبال المنزلق", movesLabel: "الحركات:", timeLabel: "الوقت:",
+    title: "مولّد الألغاز المنزلقة", movesLabel: "الحركات:", timeLabel: "الوقت:",
     heading: "حرّك القطع",
-    instructions: "اضغط على قطعة بجوار المربع الفارغ لتحريكها. أعد تركيب صورة الجبال.",
+    instructions: "اضغط على قطعة بجوار المربع الفارغ لتحريكها. أعد تركيب الصورة.",
     picture: "الصورة", size: "الحجم", numbers: "الأرقام", newGame: "لعبة جديدة",
     start: "أعد تركيب الصورة.", solvedMsg: "أحسنت!",
     enterName: "أدخل اسمك لتسجيل النتيجة", highScore: "نتيجة عالية!", yourName: "أدخل اسمك",
@@ -76,9 +106,9 @@ const TEXT = {
     name: "العربية", code: "ar", dir: "rtl",
   },
   es: {
-    title: "Rompecabezas deslizante de montañas", movesLabel: "Movimientos:", timeLabel: "Tiempo:",
+    title: "Generador de rompecabezas deslizantes", movesLabel: "Movimientos:", timeLabel: "Tiempo:",
     heading: "Desliza las piezas",
-    instructions: "Toca una pieza junto al espacio vacío para deslizarla. Vuelve a armar la imagen de las montañas.",
+    instructions: "Toca una pieza junto al espacio vacío para deslizarla. Vuelve a armar la imagen.",
     picture: "Imagen", size: "Tamaño", numbers: "Números", newGame: "Nuevo juego",
     start: "Vuelve a armar la imagen.", solvedMsg: "¡Lo lograste!",
     enterName: "Escribe tu nombre para el récord", highScore: "¡Nuevo récord!", yourName: "Escribe tu nombre",
@@ -88,9 +118,9 @@ const TEXT = {
     name: "Español", code: "es",
   },
   fr: {
-    title: "Taquin des montagnes", movesLabel: "Coups :", timeLabel: "Temps :",
+    title: "Générateur de taquins", movesLabel: "Coups :", timeLabel: "Temps :",
     heading: "Fais glisser les pièces",
-    instructions: "Touche une pièce à côté de la case vide pour la faire glisser. Reconstitue l’image des montagnes.",
+    instructions: "Touche une pièce à côté de la case vide pour la faire glisser. Reconstitue l’image.",
     picture: "Image", size: "Taille", numbers: "Numéros", newGame: "Nouvelle partie",
     start: "Reconstitue l’image.", solvedMsg: "Bravo, tu as réussi !",
     enterName: "Inscris ton nom au tableau des scores", highScore: "Nouveau record !", yourName: "Entre ton nom",
@@ -100,9 +130,9 @@ const TEXT = {
     name: "Français", code: "fr",
   },
   pt: {
-    title: "Quebra-cabeça deslizante das montanhas", movesLabel: "Movimentos:", timeLabel: "Tempo:",
+    title: "Gerador de quebra-cabeças deslizantes", movesLabel: "Movimentos:", timeLabel: "Tempo:",
     heading: "Deslize as peças",
-    instructions: "Toque em uma peça ao lado do espaço vazio para deslizá-la. Monte de novo a imagem das montanhas.",
+    instructions: "Toque em uma peça ao lado do espaço vazio para deslizá-la. Monte a imagem de novo.",
     picture: "Imagem", size: "Tamanho", numbers: "Números", newGame: "Novo jogo",
     start: "Monte a imagem de novo.", solvedMsg: "Você conseguiu!",
     enterName: "Digite seu nome para o recorde", highScore: "Novo recorde!", yourName: "Digite seu nome",
@@ -112,9 +142,9 @@ const TEXT = {
     name: "Português", code: "pt",
   },
   de: {
-    title: "Berg-Schiebepuzzle", movesLabel: "Züge:", timeLabel: "Zeit:",
+    title: "Schiebepuzzle-Generator", movesLabel: "Züge:", timeLabel: "Zeit:",
     heading: "Schiebe die Teile",
-    instructions: "Tippe auf ein Teil neben dem leeren Feld, um es zu verschieben. Setze das Bergbild wieder zusammen.",
+    instructions: "Tippe auf ein Teil neben dem leeren Feld, um es zu verschieben. Setze das Bild wieder zusammen.",
     picture: "Bild", size: "Größe", numbers: "Zahlen", newGame: "Neues Spiel",
     start: "Setze das Bild wieder zusammen.", solvedMsg: "Geschafft!",
     enterName: "Namen für die Bestenliste eingeben", highScore: "Neuer Rekord!", yourName: "Gib deinen Namen ein",
@@ -124,9 +154,9 @@ const TEXT = {
     name: "Deutsch", code: "de",
   },
   ru: {
-    title: "Пятнашки: горы", movesLabel: "Ходов:", timeLabel: "Время:",
+    title: "Генератор пятнашек", movesLabel: "Ходов:", timeLabel: "Время:",
     heading: "Двигайте плитки",
-    instructions: "Нажмите на плитку рядом с пустой клеткой, чтобы сдвинуть её. Соберите картинку с горами.",
+    instructions: "Нажмите на плитку рядом с пустой клеткой, чтобы сдвинуть её. Соберите картинку.",
     picture: "Картинка", size: "Размер", numbers: "Номера", newGame: "Новая игра",
     start: "Соберите картинку.", solvedMsg: "Готово!",
     enterName: "Записать имя в рекорды", highScore: "Новый рекорд!", yourName: "Введите ваше имя",
@@ -136,9 +166,9 @@ const TEXT = {
     name: "Русский", code: "ru",
   },
   hi: {
-    title: "पहाड़ स्लाइड पहेली", movesLabel: "चालें:", timeLabel: "समय:",
+    title: "स्लाइड पहेली जनरेटर", movesLabel: "चालें:", timeLabel: "समय:",
     heading: "टुकड़े खिसकाएँ",
-    instructions: "खाली जगह के पास वाले टुकड़े पर टैप करके उसे खिसकाएँ। पहाड़ों की तस्वीर फिर से जोड़ें।",
+    instructions: "खाली जगह के पास वाले टुकड़े पर टैप करके उसे खिसकाएँ। तस्वीर फिर से जोड़ें।",
     picture: "तस्वीर", size: "आकार", numbers: "संख्याएँ", newGame: "नया खेल",
     start: "तस्वीर फिर से जोड़ें।", solvedMsg: "शाबाश!",
     enterName: "उच्च स्कोर के लिए नाम लिखें", highScore: "नया उच्च स्कोर!", yourName: "अपना नाम लिखें",
@@ -148,9 +178,9 @@ const TEXT = {
     name: "हिन्दी", code: "hi",
   },
   ja: {
-    title: "山のスライドパズル", movesLabel: "手数：", timeLabel: "時間：",
+    title: "スライドパズルジェネレーター", movesLabel: "手数：", timeLabel: "時間：",
     heading: "ピースをスライド",
-    instructions: "空いたマスの隣のピースをタップすると動きます。山の絵を元どおりにしよう。",
+    instructions: "空いたマスの隣のピースをタップすると動きます。絵を元どおりにしよう。",
     picture: "完成図", size: "サイズ", numbers: "番号", newGame: "新しいゲーム",
     start: "絵を元どおりにしよう。", solvedMsg: "完成！",
     enterName: "名前を登録する", highScore: "ハイスコア！", yourName: "名前を入力",
@@ -160,9 +190,9 @@ const TEXT = {
     name: "日本語", code: "ja",
   },
   ko: {
-    title: "산 슬라이드 퍼즐", movesLabel: "이동:", timeLabel: "시간:",
+    title: "슬라이드 퍼즐 생성기", movesLabel: "이동:", timeLabel: "시간:",
     heading: "조각을 밀어 보세요",
-    instructions: "빈칸 옆의 조각을 누르면 움직입니다. 산 그림을 다시 맞춰 보세요.",
+    instructions: "빈칸 옆의 조각을 누르면 움직입니다. 그림을 다시 맞춰 보세요.",
     picture: "그림", size: "크기", numbers: "숫자", newGame: "새 게임",
     start: "그림을 다시 맞춰 보세요.", solvedMsg: "완성!",
     enterName: "최고 기록에 이름 남기기", highScore: "최고 기록!", yourName: "이름을 입력하세요",
@@ -172,9 +202,9 @@ const TEXT = {
     name: "한국어", code: "ko",
   },
   vi: {
-    title: "Xếp hình trượt núi non", movesLabel: "Số bước:", timeLabel: "Thời gian:",
+    title: "Trình tạo xếp hình trượt", movesLabel: "Số bước:", timeLabel: "Thời gian:",
     heading: "Trượt các mảnh",
-    instructions: "Chạm vào mảnh cạnh ô trống để trượt nó. Ghép lại bức tranh núi non.",
+    instructions: "Chạm vào mảnh cạnh ô trống để trượt nó. Ghép lại bức tranh.",
     picture: "Hình mẫu", size: "Cỡ", numbers: "Số", newGame: "Ván mới",
     start: "Ghép lại bức tranh.", solvedMsg: "Bạn đã làm được!",
     enterName: "Ghi tên vào bảng điểm cao", highScore: "Điểm cao mới!", yourName: "Nhập tên của bạn",
@@ -184,9 +214,9 @@ const TEXT = {
     name: "Tiếng Việt", code: "vi",
   },
   id: {
-    title: "Puzzle Geser Pegunungan", movesLabel: "Langkah:", timeLabel: "Waktu:",
+    title: "Generator Puzzle Geser", movesLabel: "Langkah:", timeLabel: "Waktu:",
     heading: "Geser kepingannya",
-    instructions: "Ketuk keping di sebelah kotak kosong untuk menggesernya. Susun kembali gambar pegunungan.",
+    instructions: "Ketuk keping di sebelah kotak kosong untuk menggesernya. Susun kembali gambarnya.",
     picture: "Gambar", size: "Ukuran", numbers: "Angka", newGame: "Permainan baru",
     start: "Susun kembali gambarnya.", solvedMsg: "Berhasil!",
     enterName: "Masukkan nama untuk skor tertinggi", highScore: "Skor tertinggi!", yourName: "Masukkan namamu",
@@ -196,9 +226,9 @@ const TEXT = {
     name: "Bahasa Indonesia", code: "id",
   },
   tl: {
-    title: "Slide Puzzle ng Kabundukan", movesLabel: "Galaw:", timeLabel: "Oras:",
+    title: "Generator ng Slide Puzzle", movesLabel: "Galaw:", timeLabel: "Oras:",
     heading: "I-slide ang mga piraso",
-    instructions: "I-tap ang pirasong katabi ng bakanteng puwesto para i-slide ito. Buuin muli ang larawan ng kabundukan.",
+    instructions: "I-tap ang pirasong katabi ng bakanteng puwesto para i-slide ito. Buuin muli ang larawan.",
     picture: "Larawan", size: "Laki", numbers: "Numero", newGame: "Bagong laro",
     start: "Buuin muli ang larawan.", solvedMsg: "Nagawa mo!",
     enterName: "Ilagay ang pangalan sa high score", highScore: "Bagong high score!", yourName: "Ilagay ang iyong pangalan",
@@ -208,9 +238,9 @@ const TEXT = {
     name: "Tagalog", code: "tl",
   },
   it: {
-    title: "Puzzle scorrevole delle montagne", movesLabel: "Mosse:", timeLabel: "Tempo:",
+    title: "Generatore di puzzle scorrevoli", movesLabel: "Mosse:", timeLabel: "Tempo:",
     heading: "Fai scorrere i tasselli",
-    instructions: "Tocca un tassello accanto allo spazio vuoto per farlo scorrere. Ricomponi l’immagine delle montagne.",
+    instructions: "Tocca un tassello accanto allo spazio vuoto per farlo scorrere. Ricomponi l’immagine.",
     picture: "Immagine", size: "Dimensione", numbers: "Numeri", newGame: "Nuova partita",
     start: "Ricomponi l’immagine.", solvedMsg: "Ce l’hai fatta!",
     enterName: "Inserisci il nome per il record", highScore: "Nuovo record!", yourName: "Inserisci il tuo nome",
@@ -220,9 +250,9 @@ const TEXT = {
     name: "Italiano", code: "it",
   },
   fa: {
-    title: "پازل کشویی کوهستان", movesLabel: "حرکت‌ها:", timeLabel: "زمان:",
+    title: "سازندهٔ پازل کشویی", movesLabel: "حرکت‌ها:", timeLabel: "زمان:",
     heading: "قطعه‌ها را جابه‌جا کن",
-    instructions: "روی قطعهٔ کنار خانهٔ خالی بزن تا جابه‌جا شود. تصویر کوه‌ها را دوباره کامل کن.",
+    instructions: "روی قطعهٔ کنار خانهٔ خالی بزن تا جابه‌جا شود. تصویر را دوباره کامل کن.",
     picture: "تصویر", size: "اندازه", numbers: "شماره‌ها", newGame: "بازی جدید",
     start: "تصویر را دوباره کامل کن.", solvedMsg: "آفرین، تمام شد!",
     enterName: "نامت را برای امتیاز برتر وارد کن", highScore: "امتیاز برتر!", yourName: "نامت را وارد کن",
@@ -232,9 +262,9 @@ const TEXT = {
     name: "فارسی", code: "fa", dir: "rtl",
   },
   he: {
-    title: "פאזל הזזה של הרים", movesLabel: "מהלכים:", timeLabel: "זמן:",
+    title: "מחולל פאזל הזזה", movesLabel: "מהלכים:", timeLabel: "זמן:",
     heading: "הזיזו את החלקים",
-    instructions: "הקישו על חלק שליד המשבצת הריקה כדי להזיז אותו. הרכיבו מחדש את תמונת ההרים.",
+    instructions: "הקישו על חלק שליד המשבצת הריקה כדי להזיז אותו. הרכיבו מחדש את התמונה.",
     picture: "תמונה", size: "גודל", numbers: "מספרים", newGame: "משחק חדש",
     start: "הרכיבו מחדש את התמונה.", solvedMsg: "הצלחתם!",
     enterName: "הכניסו שם לטבלת השיאים", highScore: "שיא חדש!", yourName: "הכניסו את שמכם",
@@ -244,9 +274,9 @@ const TEXT = {
     name: "עברית", code: "he", dir: "rtl",
   },
   el: {
-    title: "Συρόμενο παζλ βουνών", movesLabel: "Κινήσεις:", timeLabel: "Χρόνος:",
+    title: "Γεννήτρια συρόμενων παζλ", movesLabel: "Κινήσεις:", timeLabel: "Χρόνος:",
     heading: "Σύρε τα κομμάτια",
-    instructions: "Πάτησε ένα κομμάτι δίπλα στο κενό τετράγωνο για να το μετακινήσεις. Φτιάξε ξανά την εικόνα με τα βουνά.",
+    instructions: "Πάτησε ένα κομμάτι δίπλα στο κενό τετράγωνο για να το μετακινήσεις. Φτιάξε ξανά την εικόνα.",
     picture: "Εικόνα", size: "Μέγεθος", numbers: "Αριθμοί", newGame: "Νέο παιχνίδι",
     start: "Φτιάξε ξανά την εικόνα.", solvedMsg: "Τα κατάφερες!",
     enterName: "Γράψε το όνομά σου στο ρεκόρ", highScore: "Νέο ρεκόρ!", yourName: "Γράψε το όνομά σου",
@@ -347,8 +377,10 @@ function newGame() {
   stopSolving();
   game = {
     n, cells, empty, moves: 0, seconds: 0, started: false, done: false, timer: null, savedName: null,
-    solving: false, autoUsed: false,
+    solving: false, autoUsed: false, picture: pickPicture(),
   };
+  els.preview.src = picUrl(game.picture);
+  els.credit.textContent = game.picture.caption;
   els.moves.textContent = "0";
   els.time.textContent = formatTime(0);
   els.scoreBtn.hidden = true;
@@ -362,6 +394,7 @@ function newGame() {
     tile.className = "tile" + (p === blank ? " last" : "");
     const face = document.createElement("div");
     face.className = "face";
+    face.style.backgroundImage = `url("${picUrl(game.picture)}")`;
     face.style.backgroundSize = `${n * 100}% ${n * 100}%`;
     face.style.backgroundPosition = `${(p % n) / (n - 1) * 100}% ${Math.floor(p / n) / (n - 1) * 100}%`;
     const num = document.createElement("span");
@@ -770,7 +803,7 @@ els.scoreForm.addEventListener("submit", async e => {
   if (pack) { showPack(pack); return; }
 
   saveHighScore({
-    name, size: game.n, moves: game.moves, seconds: game.seconds, auto: game.autoUsed,
+    name, size: game.n, moves: game.moves, seconds: game.seconds, auto: game.autoUsed, picture: game.picture.id,
     date: new Date().toISOString(),
   });
   game.savedName = name;

@@ -1,7 +1,7 @@
 {
-  "name": "Mountain Slide Puzzle",
-  "short_name": "Mountains",
-  "description": "A sliding tile puzzle of a mountain range.",
+  "name": "Slide Puzzle Generator",
+  "short_name": "Slide Puzzle",
+  "description": "A sliding tile puzzle with nature pictures.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

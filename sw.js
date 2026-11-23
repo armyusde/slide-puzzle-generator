@@ -1,6 +1,6 @@
 // Service worker: caches the game so it works offline once installed.
 // Bump CACHE (and the ?v= numbers in index.html) when you change any files.
-const CACHE = "mountain-slide-v3";
+const CACHE = "mountain-slide-v4";
 
 const FILES = [
   "./",
@@ -9,7 +9,19 @@ const FILES = [
   "./src/style.css",
   "./src/game.js",
   "./assets/levels.dat",
-  "./assets/images/mountains.jpg",
+  "./assets/pictures/tetons.jpg",
+  "./assets/pictures/yosemite-falls.jpg",
+  "./assets/pictures/rainbow-falls.jpg",
+  "./assets/pictures/wildflowers.jpg",
+  "./assets/pictures/turtle.jpg",
+  "./assets/pictures/reef-fish.jpg",
+  "./assets/pictures/coral-reef.jpg",
+  "./assets/pictures/redwoods.jpg",
+  "./assets/pictures/autumn-river.jpg",
+  "./assets/pictures/autumn-falls.jpg",
+  "./assets/pictures/cosmic-cliffs.jpg",
+  "./assets/pictures/pillars.jpg",
+  "./assets/pictures/saturn.jpg",
   "./assets/images/icon-180.png",
   "./assets/images/icon-192.png",
   "./assets/images/icon-512.png",
