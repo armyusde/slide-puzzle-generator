@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="Slide Puzzle">
   <link rel="apple-touch-icon" href="assets/images/icon-180.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="src/style.css?v=4">
+  <link rel="stylesheet" href="src/style.css?v=5">
 </head>
 <body>
   <header>
@@ -53,8 +53,19 @@
         <button id="new-btn" data-t="newGame">New game</button>
       </div>
       <button id="score-btn" class="score-btn" hidden data-t="enterName">Enter name for high score</button>
+      <button id="scores-btn" class="secondary scores-btn" type="button" data-t="highScores">High scores</button>
     </section>
   </main>
+
+  <!-- High score list -->
+  <div id="list-modal" class="modal" hidden>
+    <div class="modal-box list-box">
+      <h2 data-t="highScores">High scores</h2>
+      <p id="list-empty" data-t="noScores">No high scores yet.</p>
+      <ol id="score-list" class="score-list"></ol>
+      <button type="button" id="list-close" data-t="close">Close</button>
+    </div>
+  </div>
 
   <!-- High score popup -->
   <div id="score-modal" class="modal" hidden>
@@ -71,7 +82,7 @@
     </form>
   </div>
 
-  <script src="src/game.js?v=4"></script>
+  <script src="src/game.js?v=5"></script>
   <script>
     // Offline support (only works when served over http/https, not from a file).
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {

@@ -46,6 +46,11 @@ const els = {
   cancelBtn: document.getElementById("cancel-btn"),
   newGame: document.getElementById("new-btn"),
   solve: document.getElementById("solve-btn"),
+  scoresBtn: document.getElementById("scores-btn"),
+  listModal: document.getElementById("list-modal"),
+  scoreList: document.getElementById("score-list"),
+  listEmpty: document.getElementById("list-empty"),
+  listClose: document.getElementById("list-close"),
   preview: document.getElementById("preview"),
   credit: document.getElementById("credit"),
 };
@@ -312,6 +317,31 @@ for (const [id, [solve, stop, solving, solvedAuto]] of Object.entries(SOLVE_TEXT
   Object.assign(TEXT[id], { solve, stop, solving, solvedAuto });
 }
 
+// High score list: [button + heading, close button, when the list is empty].
+const LIST_TEXT = {
+  en: ["High scores", "Close", "No high scores yet."],
+  zh: ["高分榜", "关闭", "还没有高分记录。"],
+  ar: ["أفضل النتائج", "إغلاق", "لا توجد نتائج بعد."],
+  es: ["Récords", "Cerrar", "Todavía no hay récords."],
+  fr: ["Meilleurs scores", "Fermer", "Aucun score pour l’instant."],
+  pt: ["Recordes", "Fechar", "Ainda não há recordes."],
+  de: ["Bestenliste", "Schließen", "Noch keine Einträge."],
+  ru: ["Рекорды", "Закрыть", "Рекордов пока нет."],
+  hi: ["उच्च स्कोर", "बंद करें", "अभी कोई उच्च स्कोर नहीं।"],
+  ja: ["ハイスコア", "閉じる", "まだ記録がありません。"],
+  ko: ["최고 기록", "닫기", "아직 기록이 없습니다."],
+  vi: ["Bảng điểm cao", "Đóng", "Chưa có điểm cao nào."],
+  id: ["Skor tertinggi", "Tutup", "Belum ada skor."],
+  tl: ["Mga high score", "Isara", "Wala pang high score."],
+  it: ["Record", "Chiudi", "Ancora nessun record."],
+  fa: ["امتیازهای برتر", "بستن", "هنوز امتیازی ثبت نشده."],
+  he: ["טבלת השיאים", "סגירה", "עדיין אין שיאים."],
+  el: ["Ρεκόρ", "Κλείσιμο", "Δεν υπάρχουν ακόμα ρεκόρ."],
+};
+for (const [id, [highScores, close, noScores]] of Object.entries(LIST_TEXT)) {
+  Object.assign(TEXT[id], { highScores, close, noScores });
+}
+
 let lang = "en";
 if (TEXT[store.get(LANG_KEY)]) lang = store.get(LANG_KEY);
 const t = key => TEXT[lang][key];
@@ -339,6 +369,7 @@ function applyLanguage() {
   langSelect.value = lang;
   showMessage();
   if (game && !els.scoreModal.hidden) fillScoreSummary();
+  if (!els.listModal.hidden) renderScoreList();
 }
 
 // Language dropdown: each language listed in its own name.
@@ -516,7 +547,7 @@ window.addEventListener("pointercancel", () => { press = null; });
 
 // Arrow keys on a computer work like swipes.
 document.addEventListener("keydown", e => {
-  if (!game || game.done || game.solving || !els.scoreModal.hidden) return;
+  if (!game || game.done || game.solving || !els.scoreModal.hidden || !els.listModal.hidden) return;
   const { n, empty } = game;
   const r = Math.floor(empty / n), c = empty % n;
   const map = {
@@ -725,6 +756,58 @@ els.scoreBtn.addEventListener("click", openScoreModal);
 els.cancelBtn.addEventListener("click", closeScoreModal);
 els.scoreModal.addEventListener("click", e => { if (e.target === els.scoreModal) closeScoreModal(); });
 
+/* ---------- high score list ---------- */
+
+function loadHighScores() {
+  try { return JSON.parse(localStorage.getItem(HIGH_SCORE_KEY) || "[]"); } catch (e) { return []; }
+}
+
+function formatDate(iso) {
+  try { return new Date(iso).toLocaleDateString(t("code")); } catch (e) { return ""; }
+}
+
+// One row per saved game. Games finished with "Solve it" are marked.
+function renderScoreList() {
+  const list = loadHighScores();
+  els.scoreList.innerHTML = "";
+  els.listEmpty.hidden = list.length > 0;
+  list.forEach(s => {
+    const li = document.createElement("li");
+    if (s.auto) li.className = "auto";
+    const top = document.createElement("div");
+    top.className = "score-top";
+    const name = document.createElement("strong");
+    name.textContent = s.name;
+    const date = document.createElement("span");
+    date.className = "score-date";
+    date.textContent = formatDate(s.date);
+    top.append(name, date);
+    const detail = document.createElement("div");
+    detail.className = "score-detail";
+    detail.textContent = `${s.size}×${s.size} — ${t("movesLabel")} ${s.moves}, ${t("timeLabel")} ${formatTime(s.seconds)}`;
+    li.append(top, detail);
+    if (s.auto) {
+      const note = document.createElement("div");
+      note.className = "auto-note";
+      note.textContent = t("solvedAuto");
+      li.appendChild(note);
+    }
+    els.scoreList.appendChild(li);
+  });
+}
+
+function openScoreList() {
+  renderScoreList();
+  els.listModal.hidden = false;
+  els.scoreList.scrollTop = 0;
+}
+
+function closeScoreList() { els.listModal.hidden = true; }
+
+els.scoresBtn.addEventListener("click", openScoreList);
+els.listClose.addEventListener("click", closeScoreList);
+els.listModal.addEventListener("click", e => { if (e.target === els.listModal) closeScoreList(); });
+
 /* ---------- bonus pack ---------- */
 // assets/levels.dat is an encrypted bonus pack. A name entered in the high score
 // box is tried as its key; only the right one opens it.
@@ -819,7 +902,7 @@ els.scoreForm.addEventListener("submit", async e => {
 let inPack = false;
 
 function gameUntouched() {
-  return game && (game.moves === 0 || game.done && els.scoreBtn.hidden) && els.scoreModal.hidden;
+  return game && (game.moves === 0 || game.done && els.scoreBtn.hidden) && els.scoreModal.hidden && els.listModal.hidden;
 }
 
 function showUpdateBar() {
