@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="Slide Puzzle">
   <link rel="apple-touch-icon" href="assets/images/icon-180.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="src/style.css?v=6">
+  <link rel="stylesheet" href="src/style.css?v=7">
 </head>
 <body>
   <header>
@@ -63,7 +63,10 @@
       <h2 data-t="highScores">High scores</h2>
       <p id="list-empty" data-t="noScores">No high scores yet.</p>
       <ol id="score-list" class="score-list"></ol>
-      <button type="button" id="list-close" data-t="close">Close</button>
+      <div class="controls">
+        <button type="button" id="list-close" data-t="close">Close</button>
+        <button type="button" id="list-clear" class="danger" data-t="clearScores">Clear scores</button>
+      </div>
     </div>
   </div>
 
@@ -82,7 +85,7 @@
     </form>
   </div>
 
-  <script src="src/game.js?v=6"></script>
+  <script src="src/game.js?v=7"></script>
   <script>
     // Offline support (only works when served over http/https, not from a file).
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {

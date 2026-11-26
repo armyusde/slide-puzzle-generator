@@ -296,3 +296,4 @@ button.secondary { background: #6f7b8c; }
 .score-detail { font-size: 0.9rem; }
 .score-list .auto-note { display: inline-block; margin-top: 4px; padding: 2px 10px; font-size: 0.8rem; }
 .score-top .no-name { font-weight: 600; font-style: italic; opacity: 0.6; }
+button.danger { background: #b03a2e; }
